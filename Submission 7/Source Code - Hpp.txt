@@ -1,0 +1,230 @@
+//calculator.hpp
+//Iqbal:Arsum:A00351433:csc34218
+//Submission 07
+//Implementing a Simple Four-Function Calculator
+
+/*
+UPDATE 1 @ 7:35 PM on 26/02/2013 : Started Program
+UPDATE 2 @ 6:55 PM on 3/03/2013 : Garbage Function Left
+UPDATE 3 @ 7:43 PM on 3/03/2013 : Finished Program
+*/
+
+enum TagType
+/**
+A type used for labeling the data content of a binary expression tree node.
+*/
+{
+    INT_ONLY,
+    SUB_NODE
+};
+
+
+struct TreeNode
+/**
+The type used for the nodes of a binary expression tree.
+*/
+{
+    TagType tag;
+    union //Note that this union type is "anonymous".
+    {
+        int intValue;
+        struct //And this struct type is also anonymous.
+        {
+            TreeNode* left;
+            char op;
+            TreeNode* right;
+        };
+    };
+};
+
+
+/*************************************************************************
+If you need, or would like to have, any "helper" functions, put their
+prototypes here, complete with doxygen-style documentation.
+*************************************************************************/
+
+void GetExpression
+(
+    istringstream& inStream, //inout
+    TreeNode& eTree,         //out
+    bool& successful         //out
+);
+/**<
+Tries to read a valid expression from the input stream and construct 
+the corresponding expression tree.
+@param inStream The stream from which the expression is being read.
+@param eTree Where the expression is stored if the function succeeds.
+@param successful Indicates whether a valid expression has been read.
+@pre inStream has been initiallzed and is available for reading.
+@post If successful is true, the function has succeeded, eTree contains
+a valid expression tree, and inStream is still available for reading.
+If successful is false, the function has failed, and both inStream and
+eTree are in an undefined state.
+*/
+
+
+void CheckForGarbage
+(
+    istringstream& inStream, //inout
+    bool& successful         //out
+);
+/**<
+Determines if there are any remaining non blank space characters
+in the input stream.
+@param inStream The input source stream.
+@param successful true if any characters that are not blank spaces
+are seen before the end of the input stream, and otherwise false.
+@pre inStream has been ininitalized and is open.
+@post All blank spaces on the input line up to the first non blank
+space have been consumed.
+*/
+
+
+int expressionValue
+(
+    const TreeNode& eTree //in
+);
+/**<
+Evaluates an arithmetic expression stored in a binary expression tree.
+Called only by main.
+@param eTree Where the arithmetic expression is stored.
+@return Compute the numerical value of the arithmetic expression
+stored in eTree.
+@pre eTree contains a valid arithmetic expression.
+@post The value of the arithmetic expression in eTree has been returned.
+*/
+
+
+void DisplayExpression
+(
+    const TreeNode& eTree //in
+);
+/**<
+Displays an arithmetic expression stored in a binary expression tree.
+Called only by main.
+@param eTree Where the arithmetic expression is stored.
+@pre eTree contains a valid arithmetic expression.
+@post The expression in eTree has been displayed, in fully parenthesized
+form, with a blank space on either side of each operator.
+*/
+
+
+/*************************************************************************
+If you provided any "helper" function prototypes above, put the function
+definitions corresponding to those prototypes here.
+*************************************************************************/
+
+void GetExpression
+(
+    istringstream& inStream, 
+    TreeNode& eTree,        
+    bool& successful         
+)
+{
+    //check if there is a number
+    if(isdigit(inStream.peek()))
+    {
+        //check if the number is >= 0
+        if(inStream.peek() >= 0)
+        {
+            //store that number into the node
+            int a;
+            inStream >> a;
+            eTree.tag = INT_ONLY;
+            eTree.intValue = a;
+            successful = true;
+        }
+    }
+    else if(inStream.peek() == '(')
+    {
+        //remove the '('
+        char junk;
+        inStream >> junk;
+        TreeNode* leftNode = new TreeNode;
+        //recursively call
+        GetExpression(inStream,*leftNode,successful);
+        if(successful == true)
+        {
+            //read the operator and store it
+            char oper;
+            inStream >> oper;
+            eTree.op = oper;
+            if(oper == '+' | oper == '-' | oper == '*' | oper == '/')
+            {
+                TreeNode* rightNode = new TreeNode;
+                GetExpression(inStream,*rightNode,successful);
+                if(successful == true)
+                {
+                    //find the ')'
+                    if(inStream.peek() == ')')
+                    {
+                        //discard it
+                        inStream >> junk;
+                        //store everything into their respective node
+                        eTree.tag = SUB_NODE;
+                        eTree.left = leftNode;
+                        eTree.right = rightNode;
+                        successful = true;
+                    }
+                }
+            }
+            else
+                successful = false;
+        }
+    }
+}
+
+void CheckForGarbage
+(
+    istringstream& inStream,
+    bool& successful
+)
+{
+    //checks if there is anything left
+    if(inStream.rdbuf() -> in_avail())
+        successful = false;
+    else
+        successful = true;
+}
+
+int expressionValue
+(
+    const TreeNode& eTree
+)
+{
+    //if its a number
+    if (eTree.tag == INT_ONLY)
+        //print it
+        return eTree.intValue;
+    else
+    {
+        //compute the value
+        if (eTree.op == '+')
+            return expressionValue(*eTree.left)+expressionValue(*eTree.right);
+        if (eTree.op == '-')
+            return expressionValue(*eTree.left)-expressionValue(*eTree.right);
+        if (eTree.op == '*')
+            return expressionValue(*eTree.left)*expressionValue(*eTree.right);
+        if (eTree.op == '/')
+            return expressionValue(*eTree.left)/expressionValue(*eTree.right);
+    }
+}
+
+void DisplayExpression
+(
+    const TreeNode& eTree
+)
+{
+    //if its a number just print it
+    if(eTree.tag == INT_ONLY)
+        cout << eTree.intValue;
+    else
+    {
+        //print out the parentheses and the operator
+        cout << "(";
+        DisplayExpression(*eTree.left);
+        cout << " " << eTree.op << " ";
+        DisplayExpression(*eTree.right);
+        cout << ")";
+    }
+}
